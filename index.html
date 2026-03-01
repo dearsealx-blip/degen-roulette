@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>DEGEN ROULETTE</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0a;
+  --card:#111;
+  --border:#ffffff0f;
+  --red:#ff3333;
+  --gold:#ffd700;
+  --green:#14f195;
+  --text:#fff;
+  --muted:#666;
+}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 0%,#ff333318,transparent 60%);pointer-events:none}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{font-size:1.6rem}
+.logo-text{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:3px;color:var(--red)}
+.balance-pill{background:#ff333322;border:1px solid #ff333344;border-radius:20px;padding:4px 12px;font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--red)}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:16px;max-width:420px;margin:0 auto}
+.screen.active{display:block}
+
+/* ── LOBBY ── */
+.section-title{font-size:0.65rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.create-card{background:linear-gradient(135deg,#1a0a0a,#0a0a0a);border:1px solid #ff333344;border-radius:16px;padding:20px;margin-bottom:16px}
+.entry-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.entry-btn{background:#ffffff08;border:1px solid var(--border);border-radius:8px;padding:10px 4px;text-align:center;cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;font-size:0.75rem}
+.entry-btn:active{transform:scale(0.95)}
+.entry-btn.selected{background:#ff333322;border-color:#ff333366;color:var(--red)}
+.entry-btn .amount{font-size:1rem;font-weight:700;display:block}
+.entry-btn .label{font-size:0.6rem;color:var(--muted);margin-top:2px}
+
+.players-options{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0}
+.players-btn{background:#ffffff08;border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;transition:all .15s;font-size:0.85rem}
+.players-btn.selected{background:#ff333322;border-color:#ff333366}
+
+.create-btn{width:100%;background:linear-gradient(135deg,#cc0000,#ff3333);border:none;color:#fff;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:2px;padding:14px;border-radius:12px;cursor:pointer;margin-top:4px;transition:all .2s}
+.create-btn:active{transform:scale(0.98)}
+
+/* ── GAME CARDS ── */
+.game-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s}
+.game-card:active{transform:scale(0.98)}
+.game-card-left{}
+.game-card-id{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);margin-bottom:4px}
+.game-card-fee{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--gold)}
+.game-card-fee span{font-size:0.75rem;color:var(--muted);margin-left:4px}
+.game-card-right{text-align:right}
+.game-card-players{font-size:1.5rem;margin-bottom:2px}
+.game-card-count{font-size:0.65rem;color:var(--muted);letter-spacing:1px}
+.join-tag{background:#14f19518;border:1px solid #14f19533;border-radius:6px;padding:3px 10px;font-size:0.65rem;color:var(--green);letter-spacing:1px;margin-top:4px;display:inline-block}
+
+/* ── GAME ROOM ── */
+#screen-game{text-align:center}
+.pot-display{margin:20px 0}
+.pot-label{font-size:0.65rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.pot-amount{font-family:'Space Mono',monospace;font-size:3rem;font-weight:700;color:var(--gold)}
+.pot-ton{font-size:1rem;color:var(--muted)}
+
+/* ── REVOLVER ── */
+.revolver-wrap{position:relative;width:200px;height:200px;margin:0 auto 24px}
+.revolver-ring{width:200px;height:200px;border-radius:50%;border:2px solid #ff333333;position:relative;animation:spin-slow 20s linear infinite}
+@keyframes spin-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.chamber{position:absolute;width:28px;height:28px;border-radius:50%;border:2px solid #ff333366;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all .3s}
+.chamber.alive{border-color:#14f19566;background:#14f19511}
+.chamber.dead{border-color:#ff333366;background:#ff333311}
+.chamber.bullet{border-color:var(--gold);background:#ffd70022}
+.revolver-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#1a0000,#330000);border:2px solid #ff333344;display:flex;align-items:center;justify-content:center;font-size:1.8rem;cursor:pointer;transition:all .2s;z-index:10}
+.revolver-center:active{transform:translate(-50%,-50%) scale(0.9)}
+.revolver-center.pulling{animation:shake 0.3s}
+@keyframes shake{0%,100%{transform:translate(-50%,-50%)}25%{transform:translate(-52%,-50%)}75%{transform:translate(-48%,-50%)}50%{transform:translate(-50%,-52%)}}
+
+/* ── PLAYERS LIST ── */
+.players-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
+.player-chip{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;transition:all .3s}
+.player-chip.alive{border-color:#14f19533}
+.player-chip.dead{opacity:0.3;text-decoration:line-through}
+.player-chip.you{border-color:#ff333344;background:#ff333311}
+.player-chip.winner{border-color:var(--gold);background:#ffd70011;animation:pulse-gold 1s infinite alternate}
+@keyframes pulse-gold{from{box-shadow:0 0 0 #ffd700}to{box-shadow:0 0 12px #ffd70066}}
+.player-avatar{font-size:1.5rem;margin-bottom:4px}
+.player-name{font-size:0.65rem;color:var(--muted);word-break:break-all}
+
+/* ── ACTION AREA ── */
+.action-area{margin-top:8px}
+.pull-btn{width:100%;background:linear-gradient(135deg,#cc0000,#ff3333);border:none;color:#fff;font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;letter-spacing:2px;padding:16px;border-radius:12px;cursor:pointer;transition:all .2s}
+.pull-btn:disabled{background:#222;color:#555;cursor:not-allowed}
+.pull-btn:active:not(:disabled){transform:scale(0.98)}
+.status-text{font-size:0.8rem;color:var(--muted);text-align:center;margin-top:8px;letter-spacing:1px}
+
+/* ── WAITING ROOM ── */
+.waiting-wrap{padding:24px 0}
+.waiting-icon{font-size:3rem;margin-bottom:12px;animation:bounce 1s infinite alternate}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+.waiting-title{font-family:'Space Mono',monospace;font-size:1.2rem;font-weight:700;margin-bottom:8px}
+.waiting-sub{font-size:0.8rem;color:var(--muted);margin-bottom:20px}
+.players-waiting{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.player-dot{width:44px;height:44px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+.player-dot.filled{border-color:#14f19566;background:#14f19511}
+.player-dot.empty{border-color:#ffffff11;background:#ffffff05}
+.share-btn{width:100%;background:#ffffff11;border:1px solid var(--border);color:#fff;font-family:'Space Mono',monospace;font-size:0.85rem;letter-spacing:1px;padding:12px;border-radius:10px;cursor:pointer;margin-bottom:8px}
+.share-btn:active{transform:scale(0.98)}
+.join-link-box{background:#ffffff06;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);word-break:break-all;text-align:left;margin-bottom:12px}
+
+/* ── SEND TON SHEET ── */
+.sheet{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;transform:translateY(100%);transition:transform .3s;z-index:100;max-width:420px;margin:0 auto}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 16px}
+.sheet-title{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;text-align:center;margin-bottom:4px}
+.sheet-sub{font-size:0.75rem;color:var(--muted);text-align:center;margin-bottom:16px}
+.address-box{background:#ffffff06;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);word-break:break-all;margin-bottom:8px;text-align:center}
+.address-label{font-size:0.6rem;letter-spacing:2px;color:var(--muted);margin-bottom:4px;text-transform:uppercase}
+.ton-send-btn{width:100%;background:linear-gradient(135deg,#0088cc,#005f99);border:none;color:#fff;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:1px;padding:14px;border-radius:12px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.ton-send-btn:active{transform:scale(0.98)}
+.ton-send-btn img{width:20px;height:20px}
+.cancel-btn{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:0.8rem;padding:10px;border-radius:10px;cursor:pointer}
+
+/* ── WIN SCREEN ── */
+.win-overlay{display:none;position:fixed;inset:0;background:#000000cc;backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:20px}
+.win-overlay.show{display:flex}
+.win-card{background:#111;border:1px solid var(--gold);border-radius:20px;padding:32px 24px;text-align:center;max-width:320px;width:100%}
+.win-emoji{font-size:4rem;margin-bottom:12px;animation:spin-once 0.5s}
+@keyframes spin-once{from{transform:rotate(-20deg) scale(0.5)}to{transform:rotate(0deg) scale(1)}}
+.win-title{font-family:'Space Mono',monospace;font-size:2rem;font-weight:700;color:var(--gold);margin-bottom:4px}
+.win-amount{font-family:'Space Mono',monospace;font-size:2.5rem;font-weight:700;color:var(--green);margin:12px 0}
+.win-sub{font-size:0.75rem;color:var(--muted)}
+.win-close{margin-top:16px;width:100%;background:var(--gold);border:none;color:#000;font-family:'Space Mono',monospace;font-weight:700;padding:12px;border-radius:10px;cursor:pointer;font-size:0.9rem}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;font-size:0.75rem;padding:8px 16px;border-radius:8px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;white-space:nowrap}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔫</div>
+    <div class="logo-text">DEGEN ROULETTE</div>
+  </div>
+  <div class="balance-pill" id="user-balance">-- TON</div>
+</header>
+
+<!-- ── LOBBY ── -->
+<div class="screen active" id="screen-lobby">
+  <div style="padding:16px 0">
+
+    <div class="create-card">
+      <div style="font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;margin-bottom:4px">🎰 Create Table</div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px">Host a game, share the link</div>
+
+      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Entry Fee</div>
+      <div class="entry-options">
+        <div class="entry-btn selected" data-fee="0.5" onclick="selectFee(this,'0.5')"><span class="amount">0.5</span><span class="label">TON</span></div>
+        <div class="entry-btn" data-fee="1" onclick="selectFee(this,'1')"><span class="amount">1</span><span class="label">TON</span></div>
+        <div class="entry-btn" data-fee="5" onclick="selectFee(this,'5')"><span class="amount">5</span><span class="label">TON</span></div>
+        <div class="entry-btn" data-fee="10" onclick="selectFee(this,'10')"><span class="amount">10</span><span class="label">TON</span></div>
+      </div>
+
+      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Players</div>
+      <div class="players-options">
+        <div class="players-btn" data-p="2" onclick="selectPlayers(this,2)">2</div>
+        <div class="players-btn selected" data-p="4" onclick="selectPlayers(this,4)">4</div>
+        <div class="players-btn" data-p="5" onclick="selectPlayers(this,5)">5</div>
+        <div class="players-btn" data-p="6" onclick="selectPlayers(this,6)">6</div>
+      </div>
+
+      <button class="create-btn" onclick="createGame()">🔫 CREATE TABLE</button>
+    </div>
+
+    <div class="section-title">Open Tables</div>
+    <div id="games-list">
+      <div style="text-align:center;color:var(--muted);font-size:0.8rem;padding:20px">No open tables — be the first!</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── WAITING ROOM ── -->
+<div class="screen" id="screen-waiting">
+  <div class="waiting-wrap" style="text-align:center">
+    <div class="waiting-icon">⌛</div>
+    <div class="waiting-title">WAITING FOR PLAYERS</div>
+    <div class="waiting-sub" id="waiting-sub">Need 3 more players</div>
+
+    <div class="players-waiting" id="waiting-dots"></div>
+
+    <div style="font-size:0.7rem;color:var(--muted);letter-spacing:1px;margin-bottom:6px">Share this link</div>
+    <div class="join-link-box" id="join-link-text">https://t.me/DegenRouletteBot/app?startapp=game_123</div>
+    <button class="share-btn" onclick="shareGame()">📤 Share Invite Link</button>
+    <button class="share-btn" onclick="showSendSheet('join')" style="background:linear-gradient(135deg,#0d1a0d,#0a0a0a);border-color:#14f19333;color:var(--green)">
+      ✅ I Already Sent TON
+    </button>
+  </div>
+</div>
+
+<!-- ── GAME ROOM ── -->
+<div class="screen" id="screen-game">
+
+  <div class="pot-display">
+    <div class="pot-label">💀 Death Pot</div>
+    <div class="pot-amount" id="pot-amount">0.00</div>
+    <div class="pot-ton">TON</div>
+  </div>
+
+  <div class="revolver-wrap" id="revolver-wrap">
+    <div class="revolver-ring" id="revolver-ring"></div>
+    <div class="revolver-center" id="revolver-center" onclick="pullTrigger()">🔫</div>
+  </div>
+
+  <div style="font-size:0.75rem;color:var(--muted);text-align:center;margin-bottom:12px;letter-spacing:1px">
+    Round <span id="round-num">1</span> · <span id="alive-count">4</span> alive
+  </div>
+
+  <div class="players-grid" id="players-grid"></div>
+
+  <div class="action-area">
+    <button class="pull-btn" id="pull-btn" onclick="pullTrigger()">🔫 PULL TRIGGER</button>
+    <div class="status-text" id="status-text">Tap to spin the chamber...</div>
+  </div>
+
+</div>
+
+<!-- ── SEND TON SHEET ── -->
+<div class="sheet" id="send-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheet-title">Send TON to Join</div>
+  <div class="sheet-sub" id="sheet-sub">Send exactly <b id="sheet-amount">1 TON</b> to enter the game</div>
+
+  <div class="address-label">Contract Address</div>
+  <div class="address-box" id="sheet-address" onclick="copyAddress()">
+    Loading...
+  </div>
+
+  <button class="ton-send-btn" onclick="openTonLink()">
+    💎 Open in Tonkeeper
+  </button>
+  <button class="ton-send-btn" style="background:linear-gradient(135deg,#1a1a3a,#0a0a2a)" onclick="openTonSpace()">
+    🌐 Open in TonSpace
+  </button>
+  <button class="cancel-btn" onclick="closeSheet()">Cancel</button>
+</div>
+
+<!-- ── WIN OVERLAY ── -->
+<div class="win-overlay" id="win-overlay">
+  <div class="win-card">
+    <div class="win-emoji">🏆</div>
+    <div class="win-title">SURVIVOR!</div>
+    <div style="font-size:0.8rem;color:var(--muted)">You outlasted everyone</div>
+    <div class="win-amount" id="win-amount">0 TON</div>
+    <div class="win-sub">Sent to your wallet automatically</div>
+    <button class="win-close" onclick="closeWin()">Play Again 🔫</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.expand(); tg.setHeaderColor('#0a0a0a'); }
+
+const BACKEND = 'https://degen-roulette-backend-production.up.railway.app';
+const CONTRACT = 'EQDegenRouletteContractAddressHere'; // replace after deploy
+
+let state = {
+  selectedFee: '0.5',
+  selectedPlayers: 4,
+  currentGame: null,
+  userId: tg?.initDataUnsafe?.user?.id || 'anon',
+  username: tg?.initDataUnsafe?.user?.username || 'Player',
+};
+
+// ── Fee / Players select ──────────────────────────────────────────────────────
+function selectFee(el, fee) {
+  document.querySelectorAll('.entry-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedFee = fee;
+}
+
+function selectPlayers(el, n) {
+  document.querySelectorAll('.players-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedPlayers = n;
+}
+
+// ── Create game ───────────────────────────────────────────────────────────────
+async function createGame() {
+  try {
+    const res = await fetch(`${BACKEND}/games/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryFee: state.selectedFee,
+        maxPlayers: state.selectedPlayers,
+        userId: state.userId,
+        username: state.username,
+      })
+    });
+    const game = await res.json();
+    state.currentGame = game;
+    showWaitingRoom(game);
+    // Show send sheet immediately for host to pay entry fee
+    showSendSheet('create');
+  } catch(e) {
+    toast('Failed to create game');
+  }
+}
+
+// ── Waiting room ──────────────────────────────────────────────────────────────
+function showWaitingRoom(game) {
+  showScreen('waiting');
+  const needed = game.maxPlayers - (game.players?.length || 1);
+  document.getElementById('waiting-sub').textContent = `Need ${needed} more player${needed !== 1 ? 's' : ''}`;
+
+  // Render dots
+  const dotsEl = document.getElementById('waiting-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < game.maxPlayers; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'player-dot ' + (i < (game.players?.length || 1) ? 'filled' : 'empty');
+    dot.textContent = i < (game.players?.length || 1) ? '😤' : '?';
+    dotsEl.appendChild(dot);
+  }
+
+  const link = `https://t.me/DegenRouletteBot/app?startapp=game_${game.id}`;
+  document.getElementById('join-link-text').textContent = link;
+
+  // Poll for players joining
+  startPolling(game.id);
+}
+
+// ── Join via link ─────────────────────────────────────────────────────────────
+async function joinGame(gameId) {
+  try {
+    const res = await fetch(`${BACKEND}/games/${gameId}`);
+    const game = await res.json();
+    state.currentGame = game;
+
+    if (game.status === 0) {
+      showWaitingRoom(game);
+      showSendSheet('join');
+    } else if (game.status === 1) {
+      showGameRoom(game);
+    }
+  } catch(e) {
+    toast('Game not found');
+  }
+}
+
+// ── Game room ─────────────────────────────────────────────────────────────────
+function showGameRoom(game) {
+  showScreen('game');
+  updateGameUI(game);
+}
+
+function updateGameUI(game) {
+  if (!game) return;
+
+  document.getElementById('pot-amount').textContent = game.pot?.toFixed(2) || '0.00';
+  document.getElementById('round-num').textContent = game.round || 1;
+  document.getElementById('alive-count').textContent = game.alivePlayers?.length || game.players?.length || 0;
+
+  // Revolver chambers
+  buildRevolver(game.maxPlayers, game.alivePlayers?.length || game.players?.length || 0);
+
+  // Players grid
+  const grid = document.getElementById('players-grid');
+  const allPlayers = game.players || [];
+  const alive = game.alivePlayers || allPlayers.map(p => p.id);
+  grid.innerHTML = allPlayers.map(p => {
+    const isAlive = alive.includes(p.id);
+    const isMe = p.id == state.userId;
+    const isWinner = game.winner == p.id;
+    return `<div class="player-chip ${isAlive ? 'alive' : 'dead'} ${isMe ? 'you' : ''} ${isWinner ? 'winner' : ''}">
+      <div class="player-avatar">${isWinner ? '🏆' : isAlive ? '😤' : '💀'}</div>
+      <div class="player-name">${isMe ? 'YOU' : '@' + (p.username || 'Player')}</div>
+    </div>`;
+  }).join('');
+
+  // Status
+  if (game.status === 2) {
+    document.getElementById('pull-btn').disabled = true;
+    if (game.winner == state.userId) {
+      showWin(game.payout);
+    } else {
+      document.getElementById('status-text').textContent = `💀 ${game.winnerName || 'Someone'} survived!`;
+    }
+  }
+}
+
+function buildRevolver(total, alive) {
+  const ring = document.getElementById('revolver-ring');
+  ring.innerHTML = '';
+  const radius = 80;
+  for (let i = 0; i < total; i++) {
+    const angle = (i / total) * 2 * Math.PI - Math.PI / 2;
+    const x = 100 + radius * Math.cos(angle) - 14;
+    const y = 100 + radius * Math.sin(angle) - 14;
+    const chamber = document.createElement('div');
+    chamber.className = 'chamber ' + (i < alive ? 'alive' : 'dead');
+    chamber.style.cssText = `left:${x}px;top:${y}px;position:absolute`;
+    chamber.textContent = i < alive ? '😤' : '💀';
+    ring.appendChild(chamber);
+  }
+}
+
+// ── Pull trigger ──────────────────────────────────────────────────────────────
+async function pullTrigger() {
+  if (!state.currentGame) return;
+  const btn = document.getElementById('pull-btn');
+  const center = document.getElementById('revolver-center');
+  btn.disabled = true;
+  center.classList.add('pulling');
+  document.getElementById('status-text').textContent = '🎰 Spinning chamber...';
+
+  // Haptic feedback
+  tg?.HapticFeedback?.impactOccurred('heavy');
+
+  setTimeout(() => center.classList.remove('pulling'), 300);
+
+  try {
+    const res = await fetch(`${BACKEND}/games/${state.currentGame.id}/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: state.userId })
+    });
+    const result = await res.json();
+
+    if (result.eliminated) {
+      tg?.HapticFeedback?.notificationOccurred('error');
+      document.getElementById('status-text').textContent = `💀 ${result.eliminated === state.userId ? 'YOU DIED!' : result.eliminatedName + ' is dead!'}`;
+    }
+
+    updateGameUI(result.game);
+
+    if (result.game.status !== 2) {
+      setTimeout(() => { btn.disabled = false; }, 1500);
+    }
+  } catch(e) {
+    btn.disabled = false;
+    toast('Error — try again');
+  }
+}
+
+// ── Send TON sheet ────────────────────────────────────────────────────────────
+function showSendSheet(action) {
+  const game = state.currentGame;
+  if (!game) return;
+
+  const fee = game.entryFee || state.selectedFee;
+  const gameId = game.id;
+  const comment = action === 'create' ? `create:${game.maxPlayers}` : `join:${gameId}`;
+  const amountNano = Math.round(parseFloat(fee) * 1e9);
+
+  document.getElementById('sheet-title').textContent = action === 'create' ? 'Pay Entry Fee' : 'Join Game';
+  document.getElementById('sheet-sub').innerHTML = `Send exactly <b>${fee} TON</b> with the comment below`;
+  document.getElementById('sheet-amount').textContent = fee + ' TON';
+  document.getElementById('sheet-address').textContent = CONTRACT;
+
+  // Store for TON links
+  window._tonLinkData = { address: CONTRACT, amount: amountNano, comment };
+
+  document.getElementById('send-sheet').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('send-sheet').classList.remove('open');
+}
+
+function openTonLink() {
+  const d = window._tonLinkData;
+  if (!d) return;
+  const url = `ton://transfer/${d.address}?amount=${d.amount}&text=${encodeURIComponent(d.comment)}`;
+  window.open(url, '_blank');
+}
+
+function openTonSpace() {
+  const d = window._tonLinkData;
+  if (!d) return;
+  // TonSpace uses same deeplink
+  const url = `ton://transfer/${d.address}?amount=${d.amount}&text=${encodeURIComponent(d.comment)}`;
+  window.open(url, '_blank');
+}
+
+function copyAddress() {
+  navigator.clipboard?.writeText(CONTRACT);
+  toast('Address copied!');
+}
+
+// ── Share ─────────────────────────────────────────────────────────────────────
+function shareGame() {
+  const link = document.getElementById('join-link-text').textContent;
+  if (tg) {
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('🔫 Join my Degen Roulette table! ' + state.selectedFee + ' TON entry. Last alive wins!')}`);
+  } else {
+    navigator.clipboard?.writeText(link);
+    toast('Link copied!');
+  }
+}
+
+// ── Win overlay ───────────────────────────────────────────────────────────────
+function showWin(amount) {
+  document.getElementById('win-amount').textContent = (amount || 0).toFixed(2) + ' TON';
+  document.getElementById('win-overlay').classList.add('show');
+  tg?.HapticFeedback?.notificationOccurred('success');
+}
+
+function closeWin() {
+  document.getElementById('win-overlay').classList.remove('show');
+  showScreen('lobby');
+  loadGames();
+}
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+let pollInterval = null;
+function startPolling(gameId) {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`${BACKEND}/games/${gameId}`);
+      const game = await res.json();
+      state.currentGame = game;
+
+      if (game.status === 0) {
+        showWaitingRoom(game);
+      } else if (game.status === 1) {
+        clearInterval(pollInterval);
+        showGameRoom(game);
+        // Continue polling during game
+        startPolling(gameId);
+      } else if (game.status === 2) {
+        clearInterval(pollInterval);
+        updateGameUI(game);
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+// ── Load open games ───────────────────────────────────────────────────────────
+async function loadGames() {
+  try {
+    const res = await fetch(`${BACKEND}/games`);
+    const games = await res.json();
+    const list = document.getElementById('games-list');
+
+    if (!games.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:0.8rem;padding:20px">No open tables — be the first!</div>';
+      return;
+    }
+
+    list.innerHTML = games.filter(g => g.status === 0).map(g => `
+      <div class="game-card" onclick="joinGame(${g.id})">
+        <div class="game-card-left">
+          <div class="game-card-id">TABLE #${g.id}</div>
+          <div class="game-card-fee">${g.entryFee} <span>TON</span></div>
+          <div class="join-tag">TAP TO JOIN</div>
+        </div>
+        <div class="game-card-right">
+          <div class="game-card-players">${'😤'.repeat(g.players?.length || 0)}${'⬜'.repeat(g.maxPlayers - (g.players?.length || 0))}</div>
+          <div class="game-card-count">${g.players?.length || 0}/${g.maxPlayers} PLAYERS</div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    // Backend not live yet
+    document.getElementById('games-list').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:0.8rem;padding:20px">Backend deploying...</div>';
+  }
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function toast(msg, dur = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadGames();
+
+// Check if launched via game link
+const startParam = tg?.initDataUnsafe?.start_param;
+if (startParam?.startsWith('game_')) {
+  const gameId = startParam.replace('game_', '');
+  joinGame(gameId);
+}
+</script>
+</body>
+</html>
